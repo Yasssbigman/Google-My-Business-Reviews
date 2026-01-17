@@ -1,45 +1,430 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>Place Demo</title>
-    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
-    <meta charset="utf-8">
-    <script
-      src="https://code.jquery.com/jquery-2.2.4.min.js"
-      integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44="
-      crossorigin="anonymous"></script>
-    <script src="https://rawgit.com/peledies/google-places/master/google-places.js"></script>
-	<script src="https://maps.googleapis.com/maps/api/js?v=3.exp&key=AIzaSyA7kuH-pTYGq783gkQO0fN_OGiE8-hP1xk&signed_in=true&libraries=places"></script>
-    <link rel="stylesheet" href="https://rawgit.com/peledies/google-places/master/google-places.css">
-  </head>
-  <body>
-    <div id="schema"><b>Schema - </b></div>
-    <div id="custom-address-id"><b>Address - </b></div>
-    <div id="google-phone"><b>Phone - </b></div></br>
-    <div id="google-reviews"></div>
-  </body>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reviews Widget</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-  <script>
-    $(document).ready(function() {
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: transparent;
+            overflow: hidden;
+        }
 
-      $("#google-reviews").googlePlaces({
-          placeId: 'ChIJa2uI-Nt4bIcR5cvnOxD4cFg'
-        , render: ['reviews','address','phone']
-        , min_rating: 4
-        , max_rows:5
-        , shorten_names: false
-        , schema:{
-              displayElement: "#schema"
-            , type: 'Hostel'
-            , beforeText: 'Google Users Have Rated'
-            , middleText: 'based on'
-            , afterText: 'ratings and reviews'
-          }
-        , address:{
-            displayElement: "#custom-address-id"
-          }
-      });
+        .widget {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
 
-    });
-  </script>
+        .carousel-track {
+            display: flex;
+            transition: transform 0.4s ease;
+        }
+
+        .review-card {
+            min-width: 280px;
+            flex: 0 0 280px;
+            padding: 20px;
+            border-right: 1px solid #f0f0f0;
+        }
+
+        .review-card:last-child {
+            border-right: none;
+        }
+
+        .review-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .review-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .review-meta {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .review-author {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .review-date {
+            color: #999;
+            font-size: 11px;
+        }
+
+        .review-rating {
+            display: flex;
+            gap: 2px;
+            margin-bottom: 10px;
+        }
+
+        .star {
+            color: #FFC107;
+            font-size: 14px;
+        }
+
+        .star.inactive {
+            color: #ddd;
+        }
+
+        .star::after {
+            content: "★";
+        }
+
+        .review-text {
+            color: #555;
+            line-height: 1.5;
+            font-size: 13px;
+            display: -webkit-box;
+            -webkit-line-clamp: 4;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .carousel-controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .carousel-btn {
+            background: #667eea;
+            border: none;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .carousel-btn:hover {
+            background: #764ba2;
+        }
+
+        .carousel-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .carousel-dots {
+            display: flex;
+            gap: 6px;
+        }
+
+        .dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #ddd;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .dot.active {
+            background: #667eea;
+            width: 16px;
+            border-radius: 3px;
+        }
+
+        .loading, .error {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+            font-size: 14px;
+        }
+
+        .error {
+            color: #e74c3c;
+        }
+
+        @media (max-width: 640px) {
+            .review-card {
+                min-width: 100%;
+                flex: 0 0 100%;
+            }
+        }
+
+        @media (min-width: 641px) and (max-width: 900px) {
+            .review-card {
+                min-width: 50%;
+                flex: 0 0 50%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="widget">
+        <div id="content">
+            <div class="loading">Loading reviews...</div>
+        </div>
+    </div>
+
+    <script>
+        // CONFIGURE THIS: Your deployed API endpoint
+        const API_ENDPOINT = 'http://localhost:3000';
+
+        let reviews = [];
+        let currentPage = 0;
+        let reviewsPerPage = 3;
+        let autoPlayInterval = null;
+
+        function updateReviewsPerPage() {
+            const width = window.innerWidth;
+            if (width <= 640) {
+                reviewsPerPage = 1;
+            } else if (width <= 900) {
+                reviewsPerPage = 2;
+            } else {
+                reviewsPerPage = 3;
+            }
+        }
+
+        async function fetchReviews() {
+            try {
+                const response = await fetch(`${API_ENDPOINT}/reviews`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+                return data.reviews || [];
+            } catch (error) {
+                console.error('Error fetching reviews:', error);
+                throw error;
+            }
+        }
+
+        function getInitials(name) {
+            return name
+                .split(' ')
+                .map(n => n[0])
+                .join('')
+                .toUpperCase()
+                .substring(0, 2);
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+        }
+
+        function renderStars(rating) {
+            let html = '';
+            for (let i = 1; i <= 5; i++) {
+                html += `<span class="star ${i <= rating ? '' : 'inactive'}"></span>`;
+            }
+            return html;
+        }
+
+        function convertStarRating(starRating) {
+            const map = { 'FIVE': 5, 'FOUR': 4, 'THREE': 3, 'TWO': 2, 'ONE': 1 };
+            return map[starRating] || 0;
+        }
+
+        function renderCarousel() {
+            const content = document.getElementById('content');
+            
+            if (reviews.length === 0) {
+                content.innerHTML = '<div class="error">No reviews found</div>';
+                return;
+            }
+
+            let html = '<div class="carousel-track" id="carouselTrack">';
+            
+            reviews.forEach((review) => {
+                const rating = convertStarRating(review.starRating);
+                const comment = review.comment || 'No comment provided';
+                const reviewerName = review.reviewer?.displayName || 'Anonymous';
+                const createTime = review.createTime || new Date().toISOString();
+                
+                html += `
+                    <div class="review-card">
+                        <div class="review-header">
+                            <div class="review-avatar">${getInitials(reviewerName)}</div>
+                            <div class="review-meta">
+                                <div class="review-author">${reviewerName}</div>
+                                <div class="review-date">${formatDate(createTime)}</div>
+                            </div>
+                        </div>
+                        <div class="review-rating">${renderStars(rating)}</div>
+                        <div class="review-text">${comment}</div>
+                    </div>
+                `;
+            });
+            
+            html += '</div>';
+            
+            const totalPages = Math.ceil(reviews.length / reviewsPerPage);
+            
+            html += `
+                <div class="carousel-controls">
+                    <button class="carousel-btn" id="prevBtn">‹</button>
+                    <div class="carousel-dots" id="carouselDots"></div>
+                    <button class="carousel-btn" id="nextBtn">›</button>
+                </div>
+            `;
+            
+            content.innerHTML = html;
+            
+            renderDots();
+            updateCarousel();
+            attachEventListeners();
+            startAutoPlay();
+        }
+
+        function renderDots() {
+            const dotsContainer = document.getElementById('carouselDots');
+            const totalPages = Math.ceil(reviews.length / reviewsPerPage);
+            let html = '';
+            for (let i = 0; i < totalPages; i++) {
+                html += `<div class="dot ${i === 0 ? 'active' : ''}" data-page="${i}"></div>`;
+            }
+            dotsContainer.innerHTML = html;
+        }
+
+        function updateCarousel() {
+            const track = document.getElementById('carouselTrack');
+            const cards = track.querySelectorAll('.review-card');
+            const cardWidth = cards[0]?.offsetWidth || 280;
+            const offset = -currentPage * reviewsPerPage * cardWidth;
+            track.style.transform = `translateX(${offset}px)`;
+
+            const dots = document.querySelectorAll('.dot');
+            dots.forEach((dot, index) => {
+                dot.classList.toggle('active', index === currentPage);
+            });
+
+            const totalPages = Math.ceil(reviews.length / reviewsPerPage);
+            document.getElementById('prevBtn').disabled = currentPage === 0;
+            document.getElementById('nextBtn').disabled = currentPage >= totalPages - 1;
+        }
+
+        function nextPage() {
+            const totalPages = Math.ceil(reviews.length / reviewsPerPage);
+            if (currentPage < totalPages - 1) {
+                currentPage++;
+                updateCarousel();
+            }
+        }
+
+        function prevPage() {
+            if (currentPage > 0) {
+                currentPage--;
+                updateCarousel();
+            }
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            updateCarousel();
+        }
+
+        function startAutoPlay() {
+            stopAutoPlay();
+            autoPlayInterval = setInterval(() => {
+                const totalPages = Math.ceil(reviews.length / reviewsPerPage);
+                if (currentPage >= totalPages - 1) {
+                    currentPage = 0;
+                } else {
+                    currentPage++;
+                }
+                updateCarousel();
+            }, 5000);
+        }
+
+        function stopAutoPlay() {
+            if (autoPlayInterval) {
+                clearInterval(autoPlayInterval);
+            }
+        }
+
+        function attachEventListeners() {
+            document.getElementById('prevBtn').addEventListener('click', () => {
+                prevPage();
+                startAutoPlay();
+            });
+            
+            document.getElementById('nextBtn').addEventListener('click', () => {
+                nextPage();
+                startAutoPlay();
+            });
+            
+            document.querySelectorAll('.dot').forEach(dot => {
+                dot.addEventListener('click', (e) => {
+                    const page = parseInt(e.target.dataset.page);
+                    goToPage(page);
+                    startAutoPlay();
+                });
+            });
+
+            window.addEventListener('resize', () => {
+                const oldPerPage = reviewsPerPage;
+                updateReviewsPerPage();
+                if (oldPerPage !== reviewsPerPage) {
+                    currentPage = 0;
+                    renderDots();
+                    updateCarousel();
+                }
+            });
+        }
+
+        async function init() {
+            updateReviewsPerPage();
+            try {
+                reviews = await fetchReviews();
+                renderCarousel();
+            } catch (error) {
+                document.getElementById('content').innerHTML = `
+                    <div class="error">
+                        Failed to load reviews<br>
+                        <span style="font-size: 11px;">${error.message}</span>
+                    </div>
+                `;
+            }
+        }
+
+        init();
+    </script>
+</body>
 </html>
