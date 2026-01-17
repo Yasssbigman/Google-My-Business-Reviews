@@ -1,11 +1,15 @@
 {
-  "name": "google-business-reviews",
-  "version": "1.0.0",
-  "main": "index.js",
-  "dependencies": {
-    "express": "^4.18.2",
-    "googleapis": "^118.0.0",
-    "axios": "^1.4.0",
-    "dotenv": "^16.0.3"
-  }
+  "version": 2,
+  "builds": [
+    {
+      "src": "index.js",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/index.js"
+    }
+  ]
 }
